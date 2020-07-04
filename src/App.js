@@ -19,6 +19,7 @@ function App() {
   const stageRef = useRef(null);
   const layerRef = useRef(null);
   const [isPainting, setIsPainting] = useState(false);
+  const [currPainterId, setCurrPainterId] = useState(0)
 
   return (
     <div className="App">
@@ -37,13 +38,16 @@ function App() {
               globalCompositeOperation: 'source-over', // TODO: find out what this is
               points: [startingPos.x, startingPos.y],
             });
+            setCurrPainterId(line._id)
             layerRef.current.add(line);
           }}
           onMouseUp={() => setIsPainting(false)}
-          onMouseMove={({ evt }) => {
+          onMouseMove={({ evt: dragEvent }) => {
             if (isPainting) {
-              const line = layerRef.current.children[1] // TODO: refer to new line everytime mouse is downed and not to 1 single line
-              const newPoints = line.points().concat([evt.layerX, evt.layerY])
+              const line = layerRef.current.getChildren((node) => {
+                return node._id == currPainterId
+              })[0] // TODO: dont find current line id everytime mouse is moved, cache it
+              const newPoints = line.points().concat([dragEvent.layerX, dragEvent.layerY])
               line.points(newPoints)
               layerRef.current.batchDraw()
             }
