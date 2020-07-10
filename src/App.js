@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Stage, Layer, Rect, Text } from "react-konva";
+import React, { useState, useRef } from "react";
+import { Stage, Layer, Rect } from "react-konva";
 import Konva from "konva";
 import "./App.css";
 
@@ -23,8 +23,6 @@ function App() {
 
   return (
     <div className="App">
-      <header className="App-header">
-        <h1>Hello</h1>
         <Stage
           width={window.innerWidth}
           height={window.innerHeight}
@@ -33,7 +31,7 @@ function App() {
             setIsPainting(true);
             const startingPos = stageRef.current.getPointerPosition();
             const line = new Konva.Line({
-              stroke: "white",
+              stroke: "red",
               strokeWidth: 5,
               globalCompositeOperation: 'source-over', // TODO: find out what this is
               points: [startingPos.x, startingPos.y],
@@ -45,7 +43,7 @@ function App() {
           onMouseMove={({ evt: dragEvent }) => {
             if (isPainting) {
               const line = layerRef.current.getChildren((node) => {
-                return node._id == currPainterId
+                return node._id === currPainterId
               })[0] // TODO: dont find current line id everytime mouse is moved, cache it
               const newPoints = line.points().concat([dragEvent.layerX, dragEvent.layerY])
               line.points(newPoints)
@@ -54,10 +52,8 @@ function App() {
           }}
         >
           <Layer ref={layerRef}>
-            <ColoredRect />
           </Layer>
         </Stage>
-      </header>
     </div>
   );
 }
