@@ -18,7 +18,7 @@ function ColoredRect() {
 function App() {
   const stageRef = useRef(null);
   const layerRef = useRef(null);
-  const [isPainting, setIsPainting] = useState(false);
+  const [isMouseDown, setIsMouseDown] = useState(false);
   const [currPainterId, setCurrPainterId] = useState(0)
 
   return (
@@ -28,7 +28,7 @@ function App() {
           height={window.innerHeight}
           ref={stageRef}
           onMouseDown={() => {
-            setIsPainting(true);
+            setIsMouseDown(true);
             const startingPos = stageRef.current.getPointerPosition();
             const line = new Konva.Line({
               stroke: "red",
@@ -39,9 +39,9 @@ function App() {
             setCurrPainterId(line._id)
             layerRef.current.add(line);
           }}
-          onMouseUp={() => setIsPainting(false)}
+          onMouseUp={() => setIsMouseDown(false)}
           onMouseMove={({ evt: dragEvent }) => {
-            if (isPainting) {
+            if (isMouseDown) {
               const line = layerRef.current.getChildren((node) => {
                 return node._id === currPainterId
               })[0] // TODO: dont find current line id everytime mouse is moved, cache it
