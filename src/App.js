@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Stage, Layer } from "react-konva";
 import Konva from "konva";
 import socket from './socket'
+import LayerHelper from './helpers/layer'
 
 function App() {
   const stageRef = useRef(null);
@@ -12,11 +13,8 @@ function App() {
   useEffect(() => {
     socket.on('out paint', (line) => {
       const { id, pos } = line
-      const lineToAddPointsTo = layerRef.current.getChildren((node) => {
-        return node._id === id
-      })[0]
-      const newPoints = lineToAddPointsTo.points().concat(pos)
-      lineToAddPointsTo.points(newPoints)
+      const lineToAddPointsTo = LayerHelper.getLineByIdFrom(layerRef.current, id)
+      LayerHelper.addPointTo(lineToAddPointsTo, pos)
       layerRef.current.draw()
     })
 
@@ -41,7 +39,6 @@ function App() {
               globalCompositeOperation: 'source-over', // TODO: find out what this is
               points: [startingPos.x, startingPos.y],
             });
-            console.log(line.toObject(), line._id, line)
             socket.emit('new line', { ...line.toObject(), id: line._id })
             setCurrPainterId(line._id)
             layerRef.current.add(line);
@@ -51,11 +48,8 @@ function App() {
             if (isMouseDown) {
               const moveEventPosition = [moveEvent.layerX, moveEvent.layerY]
               socket.emit('paint', { id: currPainterId, pos: moveEventPosition })
-              const line = layerRef.current.getChildren((node) => {
-                return node._id === currPainterId
-              })[0] // TODO: dont find current line id everytime mouse is moved, cache it
-              const newPoints = line.points().concat(moveEventPosition)
-              line.points(newPoints)
+              const line = LayerHelper.getLineByIdFrom(layerRef.current, currPainterId) // TODO: dont find current line id everytime mouse is moved, cache it
+              LayerHelper.addPointTo(line, moveEventPosition)
               layerRef.current.draw()
             }
           }}
