@@ -1,25 +1,30 @@
-import React, { useState, useRef } from "react";
-import { Stage, Layer, Rect } from "react-konva";
+import React, { useState, useRef, useEffect } from "react";
+import { Stage, Layer } from "react-konva";
 import Konva from "konva";
-import "./App.css";
+import socket from './socket'
 
-function ColoredRect() {
-  const [color, setColor] = useState("green");
-  return (
-    <Rect
-      onClick={() => setColor(Konva.Util.getRandomColor())}
-      width={30}
-      height={30}
-      fill={color}
-      draggable
-    />
-  );
-}
 function App() {
   const stageRef = useRef(null);
   const layerRef = useRef(null);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [currPainterId, setCurrPainterId] = useState(0)
+
+  useEffect(() => {
+    socket.on('out paint', (line) => {
+      const { id, pos } = line
+      const lineToAddPointsTo = layerRef.current.getChildren((node) => {
+        return node._id === id
+      })[0]
+      const newPoints = lineToAddPointsTo.points().concat(pos)
+      lineToAddPointsTo.points(newPoints)
+      layerRef.current.draw()
+    })
+
+    socket.on('new line', (line) => {
+      const newLine = new Konva.Line(line)
+      layerRef.current.add(newLine)
+    })
+  }, [])
 
   return (
     <div className="App">
@@ -36,18 +41,22 @@ function App() {
               globalCompositeOperation: 'source-over', // TODO: find out what this is
               points: [startingPos.x, startingPos.y],
             });
+            console.log(line.toObject(), line._id, line)
+            socket.emit('new line', { ...line.toObject(), id: line._id })
             setCurrPainterId(line._id)
             layerRef.current.add(line);
           }}
           onMouseUp={() => setIsMouseDown(false)}
-          onMouseMove={({ evt: dragEvent }) => {
+          onMouseMove={({ evt: moveEvent }) => {
             if (isMouseDown) {
+              const moveEventPosition = [moveEvent.layerX, moveEvent.layerY]
+              socket.emit('paint', { id: currPainterId, pos: moveEventPosition })
               const line = layerRef.current.getChildren((node) => {
                 return node._id === currPainterId
               })[0] // TODO: dont find current line id everytime mouse is moved, cache it
-              const newPoints = line.points().concat([dragEvent.layerX, dragEvent.layerY])
+              const newPoints = line.points().concat(moveEventPosition)
               line.points(newPoints)
-              layerRef.current.batchDraw()
+              layerRef.current.draw()
             }
           }}
         >
