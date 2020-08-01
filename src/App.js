@@ -3,7 +3,9 @@ import { Stage, Layer } from "react-konva";
 import Konva from "konva";
 import socket from './socket'
 import LayerHelper from './helpers/layer'
+import axios from 'axios'
 
+const BASE_URL = 'http://localhost:8081'
 function App() {
   const stageRef = useRef(null);
   const layerRef = useRef(null);
@@ -11,6 +13,24 @@ function App() {
   const [currPainterId, setCurrPainterId] = useState(0)
 
   useEffect(() => {
+    async function getBoard() {
+      try {
+        const { data: { children } } = await axios.get(`${BASE_URL}/boards/bruh`) // TODO: get based on url and not hardcoded
+        children.forEach(node => {
+          switch (node.className) {
+            case 'Line':
+              const newLine = new Konva.Line(node)
+              layerRef.current.add(newLine)
+              layerRef.current.draw()
+              break
+            default: // TODO: include other node variations
+              break
+          }
+        });
+      } catch (err) {
+        console.log("error fetching board", err)
+      }
+    }
     socket.on('out paint', (line) => {
       const { id, pos } = line
       const lineToAddPointsTo = LayerHelper.getLineByIdFrom(layerRef.current, id)
@@ -22,6 +42,9 @@ function App() {
       const newLine = new Konva.Line(line)
       layerRef.current.add(newLine)
     })
+
+    getBoard()
+
   }, [])
 
   return (
@@ -43,7 +66,19 @@ function App() {
             setCurrPainterId(line._id)
             layerRef.current.add(line);
           }}
-          onMouseUp={() => setIsMouseDown(false)}
+          onMouseUp={() => {
+            setIsMouseDown(false)
+            const line = LayerHelper.getLineByIdFrom(layerRef.current, currPainterId)
+            console.log(line.toJSON(), line.toObject())
+            axios.put(`${BASE_URL}/boards`, {
+              board: 'bruh', // TODO: don't hardcode board name
+              child: {
+                id: line._id,
+                ...line.toObject(),
+              }
+            })
+
+          }}
           onMouseMove={({ evt: moveEvent }) => {
             if (isMouseDown) {
               const moveEventPosition = [moveEvent.layerX, moveEvent.layerY]
